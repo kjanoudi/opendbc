@@ -1270,6 +1270,11 @@ FW_VERSIONS = {
     ],
   },
   CAR.HYUNDAI_PALISADE_2023: {
+    (Ecu.eps, 0x7d4, None): [
+      b'\xf1\x00ON  MDPS C 1.00 1.01 56300-S9500 2922',
+      b'\xf1\x00ON  MDPS C 1.00 1.01 56300-S9500 2922',
+      b'\xf1\x00LXP MDPS C 1.00 1.00 56310-S8620 4LXPC100',
+    ],
     (Ecu.fwdCamera, 0x7c4, None): [
       b'\xf1\x00LX2 MFC  AT USA LHD 1.00 1.04 99211-S8150 220622',
       b'\xf1\x00ON  MFC  AT USA LHD 1.00 1.01 99211-S9150 220708',
