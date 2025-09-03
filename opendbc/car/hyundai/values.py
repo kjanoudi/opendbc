@@ -26,7 +26,7 @@ class CarControllerParams:
     self.STEER_THRESHOLD = 150
     self.STEER_STEP = 1  # 100 Hz
 
-    if CP.flags & HyundaiFlags.CANFD:
+    if CP.flags & HyundaiFlags.CANFD and not (CP.flags & HyundaiFlags.CAN_CANFD_BLENDED):
       self.STEER_MAX = 270
       self.STEER_DRIVER_ALLOWANCE = 250
       self.STEER_DRIVER_MULTIPLIER = 2
@@ -54,14 +54,16 @@ class CarControllerParams:
 
     elif CP.flags & HyundaiFlags.CAN_CANFD_BLENDED:
       self.STEER_MAX = 384
-      self.STEER_DRIVER_ALLOWANCE = 50  # CAN driver torque signal scaling
-      self.STEER_THRESHOLD = 150  # CAN driver torque signal scaling
-      self.STEER_DELTA_UP = 2  # CAN FD rate limits
-      self.STEER_DELTA_DOWN = 3  # CAN FD rate limits
+      self.STEER_DRIVER_ALLOWANCE = 50
+      self.STEER_THRESHOLD = 150
+      self.STEER_DELTA_UP = 2
+      self.STEER_DELTA_DOWN = 3
 
     # Default for most HKG
     else:
-      self.STEER_MAX = 384
+      self.STEER_MAX = 330 if CP.flags & HyundaiFlags.ALT_LIMITS else 384
+      self.STEER_DELTA_UP = 2 if CP.flags & HyundaiFlags.ALT_LIMITS else 3
+      self.STEER_DELTA_DOWN = 3 if CP.flags & HyundaiFlags.ALT_LIMITS else 7
 
 
 class HyundaiSafetyFlags(IntFlag):
@@ -352,10 +354,8 @@ class CAR(Platforms):
   )
   HYUNDAI_PALISADE_2023 = HyundaiPlatformConfig(
     [
-      HyundaiCarDocs("Hyundai Palisade (without HDA II) 2023-25", "Highway Driving Assist",
-                     car_parts=CarParts([Device.threex_angled_mount, CarHarness.hyundai_a])),
-      HyundaiCarDocs("Kia Telluride (without HDA II) 2023-25", "Highway Driving Assist",
-                     car_parts=CarParts([Device.threex_angled_mount, CarHarness.hyundai_l])),
+      HyundaiCarDocs("Hyundai Palisade (with HDA II) 2023-24", "All", car_parts=CarParts.common([CarHarness.hyundai_r])),
+      HyundaiCarDocs("Kia Telluride (with HDA II) 2023-24", "All", car_parts=CarParts.common([CarHarness.hyundai_p])),
     ],
     HYUNDAI_PALISADE.specs,
     flags=HyundaiFlags.CHECKSUM_CRC8 | HyundaiFlags.CAN_CANFD_BLENDED | HyundaiFlags.RADAR_SCC,

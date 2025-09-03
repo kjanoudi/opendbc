@@ -88,14 +88,15 @@ class CarInterface(CarInterfaceBase):
     else:
       # Shared configuration for non CAN-FD cars
       ret.alphaLongitudinalAvailable = candidate not in UNSUPPORTED_LONGITUDINAL_CAR
-      ret.enableBsm = 0x58b in fingerprint[CAN.ECAN]
+      bsm_bus = CAN.ECAN if ret.flags & HyundaiFlags.CAN_CANFD_BLENDED else 0
+      ret.enableBsm = 0x58b in fingerprint[bsm_bus]
 
       # Send LFA message on cars with HDA
-      if 0x485 in fingerprint[CAN.CAM]:
+      if 0x485 in fingerprint[2]:
         ret.flags |= HyundaiFlags.SEND_LFA.value
 
       # These cars use the FCA11 message for the AEB and FCW signals, all others use SCC12
-      if 0x38d in fingerprint[CAN.ECAN] or 0x38d in fingerprint[CAN.CAM]:
+      if 0x38d in fingerprint[0] or 0x38d in fingerprint[2]:
         ret.flags |= HyundaiFlags.USE_FCA.value
 
       if ret.flags & HyundaiFlags.LEGACY:
@@ -117,12 +118,28 @@ class CarInterface(CarInterfaceBase):
       if ret.flags & HyundaiFlags.CAN_CANFD_BLENDED:
         ret.safetyConfigs[-1].safetyParam |= HyundaiSafetyFlags.CAN_CANFD_BLENDED.value
 
+      if lka_steering:
+        ret.flags |= HyundaiFlags.CANFD_LKA_STEERING.value
+
     # Common lateral control setup
 
     ret.centerToFront = ret.wheelbase * 0.4
     ret.steerActuatorDelay = 0.1
     ret.steerLimitTimer = 0.4
     CarInterfaceBase.configure_torque_tune(candidate, ret.lateralTuning)
+
+    if candidate == CAR.HYUNDAI_PALISADE_2023:
+      for fw in car_fw:
+        if fw.ecu == "eps":
+          platform_str = "HYUNDAI_PALISADE_2023_EPS_4LXPC100" if fw.fwVersion.endswith(b'4LXPC100') else \
+            "HYUNDAI_PALISADE_2023_EPS_2427" if fw.fwVersion.endswith(b'2427') else \
+              candidate
+
+          CarInterfaceBase.configure_torque_tune(platform_str, ret.lateralTuning)
+
+          if platform_str == "HYUNDAI_PALISADE_2023_EPS_2427":
+            # We only limit in the controller, panda safety limits apply for both Palisade HDA2 and Telluride HDA2
+            ret.flags |= HyundaiFlags.ALT_LIMITS.value
 
     if ret.flags & HyundaiFlags.ALT_LIMITS:
       ret.safetyConfigs[-1].safetyParam |= HyundaiSafetyFlags.ALT_LIMITS.value
@@ -142,6 +159,9 @@ class CarInterface(CarInterfaceBase):
     ret.vEgoStarting = 0.1
     ret.startAccel = 1.0
     ret.longitudinalActuatorDelay = 0.5
+
+    if ret.flags & HyundaiFlags.CAN_CANFD_BLENDED:
+      ret.stoppingDecelRate = 0.4
 
     if ret.openpilotLongitudinalControl:
       ret.safetyConfigs[-1].safetyParam |= HyundaiSafetyFlags.LONG.value

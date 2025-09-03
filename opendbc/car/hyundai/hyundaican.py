@@ -1,5 +1,4 @@
 import crcmod
-from opendbc.car.hyundai.hyundaicanfd import CanBus
 from opendbc.car.hyundai.values import CAR, HyundaiFlags
 
 from opendbc.sunnypilot.car.hyundai.escc import EnhancedSmartCruiseControl
@@ -187,28 +186,16 @@ def create_clu11(packer, frame, clu11, button, CP, CAN):
   # send buttons to camera on camera-scc based cars
   if CP.flags & HyundaiFlags.CAMERA_SCC:  # send buttons to camera on camera-scc based cars
     bus = 2
-  elif CP.flags & HyundaiFlags.CAN_CANFD_BLENDED:
-    bus = CAN.ECAN
   else:
-    bus = 0
+    bus = CAN.ECAN if CP.flags & HyundaiFlags.CAN_CANFD_BLENDED else 0
   return packer.make_can_msg("CLU11", bus, values)
 
 
-def create_lfahda_mfc(packer, frame, CP, enabled, lfa_icon):
+def create_lfahda_mfc(packer, enabled, lfa_icon):
   values = {
     "LFA_Icon_State": lfa_icon,
   }
-  can_canfd_blended = CP.flags & HyundaiFlags.CAN_CANFD_BLENDED
-  bus = CanBus(CP).ECAN if can_canfd_blended else 0
-
-  if can_canfd_blended:
-    values["COUNTER"] = frame % 0xF
-
-    dat = packer.make_can_msg("LFAHDA_MFC", bus, values)[1]
-    checksum = hyundai_checksum(dat[1:8])
-    values["CHECKSUM"] = checksum
-
-  return packer.make_can_msg("LFAHDA_MFC", bus, values)
+  return packer.make_can_msg("LFAHDA_MFC", 0, values)
 
 def create_acc_commands_can_canfd_blended(packer, enabled, accel, upper_jerk, idx, hud_control, set_speed, stopping, long_override, use_fca, CP,
                         main_cruise_enabled, tuning, CAN, ESCC: EnhancedSmartCruiseControl = None):
